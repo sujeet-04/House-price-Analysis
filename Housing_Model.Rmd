@@ -1,0 +1,333 @@
+---
+title: "Housing Price Analysis"
+author: "Sujeet"
+date: "January 4, 2021"
+output: html_document
+---
+## ---- include = FALSE---------------------------------------------------------
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+                      Agenda : Predict the price of the house using Linear regression algorithm 
+
+```{r}
+
+#Load the Dataset.
+library(readxl) #To read the xlsx file.
+Housing <- read_excel("D:\\Data Analysis\\Job\\Unihelp\\Housing\\Housedata.xlsx") #Store the dataset in Housing
+head(Housing) #Top 6 rows of the dataset.
+
+```
+
+We will rename the columns of our dataset for better understanding of the attributes to analyze the dataset. 
+
+```{r}
+colnames(Housing) <- c("Rooms","Bedrooms","Bathrooms","Age","Style","Area","Garage","Attached","Basement",
+                       "Fireplace","Total_Area","Price","Exposure")
+View(Housing)
+```
+
+check for the class types of the attributes and it's range, mean and other values
+
+```{r}
+str(Housing)    #To see the structure of the dataset
+
+anyNA(Housing)  #To check the Na values.
+
+summary(Housing) #Summary of the Dataset.
+```
+
+As the data set not contain any Na Value we move Forward to EDA part
+
+```{r}
+library(e1071) #To check Skewness
+
+skewness(Housing$Area)        # 2.14
+skewness(Housing$Total_Area)  #3.00
+skewness(Housing$Price)       #2.23
+
+library(psych)                # To plot the correlation graph
+
+pairs.panels(Housing)         #corrrelation plot
+cor(Housing)                  #correlation table
+
+```
+
+we only check the skewness for Area,Total Area and Price of the house because apart from these three all
+other attributes are categorical variable(These values are limited and usually fixed like number of rooms,
+bathroom,bedroom etc).In the correlation plot the correlation value between rooms and bedroom and size is more
+which is quite obvious as the number of rooms increase there is a chance that bedrooms are more and also the area on which it built should be more.
+
+```{r}
+library(ggplot2)
+attach(Housing)
+Housing2 <- Housing  # Replication of the original dataset
+
+#As we discuss earlier we have a so many categorical values in our dataset, now we will transform it into the 
+# Factor so that we can analyze the frequency of the fixed varriable and how our price variable varry depending
+# upon these varriable
+Housing2$Rooms <- as.factor(Housing2$Rooms) 
+Housing2$Bedrooms <- as.factor(Housing2$Bedrooms)
+Housing2$Bathrooms <- as.factor(Housing2$Bathrooms)
+Housing2$Exposure <- as.factor(Housing2$Exposure)
+Housing2$Attached <- as.factor(Housing2$Attached)
+Housing2$Style <- as.factor(Housing2$Style)
+Housing2$Garage <- as.factor(Housing2$Garage)
+Housing2$Basement <- as.factor(Housing2$Basement)
+Housing2$Fireplace <- as.factor(Housing2$Fireplace)
+
+#Now we will see the frequency of each attributes using plot and table both and check if is there any unbalance
+#in the type of factors present in each attributes because that will affect our result
+
+table(Housing2$Rooms)
+ggplot(data = Housing2,mapping = aes(x = Rooms,fill = Rooms))+geom_bar()
+
+table(Housing2$Bedrooms)
+ggplot(data = Housing2,mapping = aes(x = Bedrooms,fill = Bedrooms))+geom_bar()
+
+table(Housing2$Bathrooms)
+ggplot(data = Housing2,mapping = aes(x = Bathrooms,fill = Bathrooms))+geom_bar()
+
+table(Housing2$Style)
+ggplot(data = Housing2,mapping = aes(x = Style,fill = Style))+geom_bar()
+
+table(Housing2$Garage)
+ggplot(data = Housing2,mapping = aes(x = Garage,fill = Garage))+geom_bar()
+
+table(Housing2$Attached)
+ggplot(data = Housing2,mapping = aes(x = Attached,fill = Attached))+geom_bar()
+
+table(Housing2$Basement)
+ggplot(data = Housing2,mapping = aes(x = Basement,fill = Basement))+geom_bar()
+
+table(Housing2$Fireplace)
+ggplot(data = Housing2,mapping = aes(x = Fireplace,fill = Fireplace))+geom_bar()
+
+table(Housing2$Exposure)
+ggplot(data = Housing2,mapping = aes(x = Exposure,fill = Exposure))+geom_bar()
+
+ggplot(data = Housing2,mapping = aes(x=Age))+geom_histogram()
+table(Housing2$Age)
+ggplot(data = Housing2,mapping = aes(x=Price))+geom_histogram(bins = 70)
+ggplot(data = Housing2,mapping = aes(x=Area))+geom_histogram(bins = 50)
+ggplot(data = Housing2,mapping = aes(x=Total_Area))+geom_histogram(bins = 40)
+
+```
+
+From the analysis we done above we can say that there is a huge imbalance in the factors of our dataset,there 
+are case were the frequency is lee than 10 even 1 which is not good because our model will never be able to 
+identify the pattern present inside these less frequncy factors.
+
+```{r}
+
+#Variation of House price based on the number of rooms it have.
+ggplot(data = Housing2,mapping = aes(x=Rooms,y=Price,fill= Rooms))+geom_boxplot()+
+  ggtitle("Price of house based on number of rooms ")
+
+#change in House price based on the number of Bedrooms Present in it.
+ggplot(data = Housing2,mapping = aes(Bedrooms,Price,fill = Bedrooms))+geom_boxplot()
+
+#Variation of House price based on the number of Bathrooms it have.
+ggplot(data = Housing2,mapping = aes(Bathrooms,Price,fill = Bathrooms))+geom_boxplot()
+
+#Variation of House price Depending Upon either it is bungalow or two storey.
+ggplot(data = Housing2,mapping = aes(Style,Price,fill = Style))+geom_boxplot()
+
+#Variation of House price based on the number of Garage it have.
+ggplot(data = Housing2,mapping = aes(Garage,Price,fill = Garage))+geom_boxplot()
+
+#Variation of House price based on either the garage is attached with house or not.
+ggplot(data = Housing2,mapping = aes(Attached,Price,fill = Attached))+geom_boxplot()
+
+#Variation of House price based on the number of Basement it have.
+ggplot(data = Housing2,mapping = aes(Basement,Price,fill = Basement))+geom_boxplot()
+
+#Variation of House price based on the number of Fireplace it have.
+ggplot(data = Housing2,mapping = aes(Fireplace,Price,fill = Fireplace))+geom_boxplot()
+
+#Variation of House price based on either it has exposure or not.
+ggplot(data = Housing2,mapping = aes(Exposure,Price,fill = Exposure))+geom_boxplot()+
+  ggtitle("Price of the house based on Exposure")
+
+#Point graph to see the price change based on the age of the house.
+ggplot(data = Housing2,mapping = aes(Age,Price))+geom_point(size = 3,shape = 20)+geom_smooth(method = lm)+
+  ggtitle("Price of house based on age of the house")
+
+#Point graph to see the price change based on the Living area.
+ggplot(data = Housing2,mapping = aes(Area,Price))+geom_point(size = 3,shape = 20)+geom_smooth(method = lm)+
+  ggtitle("Price of the house based on area")
+
+#Point graph to see the price change based on the Total area of the house.
+ggplot(data = Housing2,mapping = aes(Total_Area,Price))+geom_point(size = 3,shape = 20)+geom_smooth(method = lm)
+
+```
+1 > In the above analysis we saw that as the number of rooms,bedrooms and bathrooms increases the price of the     house also increases.
+2 > Also there is a positive trend in case of area of the house.
+3 > In case of age there is a slight decline in the slop which indicates that as the house get older its price     decreases.
+4 > Apart from this the price of two storey house is high compare to Bungalow.
+5 > In case if there is Fireplace and the Garage is attached to House than the price is higher caompare to         those houses which don't have these facility.
+6 > The price of house doesn't depend much on either it has exposure or not but in case of basement if the         number of basement is 1 then the price is high compare to 2 or 3 basement.
+
+```{r}
+#Now as we saw in the plot that either the fireplace is 1 or 2 it doesn't affect the price of the house but if the fireplace is not there the price changes so we build a new column in which we assign either the house have the fireplace or not as 1 and 0 respectively and drop the Fireplace column
+
+Housing$Fireplace2 <- ifelse(Housing$Fireplace=="0",0,1) # If the fireplace is 0 than 0 otherwise 1
+Housing$Garage2 <- ifelse(Housing$Garage == "0",0,1)
+table(Housing$Fireplace2) #To see the Frequency of the table
+table(Housing$Garage2)
+Housing3 <- Housing[,-10] #Drop the original table.
+View(Housing3)
+
+```
+
+Now as we done with oue EDA part the next thing is to build a model.
+
+```{r}
+
+model1 <- lm(Price~Rooms+Bedrooms+Bathrooms+Age+Style+Area+Garage+Garage2+Attached+Basement+Total_Area+
+             Exposure+Fireplace2,data = Housing3)
+
+summary(model1)
+
+AIC(model1) # Akaike's information criterion
+BIC(model1) #  Bayesian information criterion also known as Schwarz's Bayesian criterion (SBC)
+
+```
+
+In the above model we got R-squared as 0.7223 and Adjusted R-Squared as 0.711 which is decent but we will try to increase it also for some attributes the p value is more than 0.05 which means that the chance that the model can't predict its attribute correctly is greater than 5 percent.ehich is not significant.  
+
+Now as we discuss earlier there is imbalance in the factors of the categorical variable so we will solve that first,for that we will group it in small scale compare to large so that it's frequency increases and model will able to predict the variable easily.
+
+```{r}
+Housing4 <- Housing3
+
+#First in case of Rooms if the number of room is less than or equal to 6 it belongs to category 1 and more than 6 belongs to category2
+Housing4$Rooms <- ifelse(Housing4$Rooms>6,2,1)
+table(Housing4$Rooms)
+
+#Now for Bedrooms if the number of bedrooms is less than or equal to 3 mark it 1 and if it is greater than 3 mark it as 2
+Housing4$Bedrooms <- ifelse(Housing4$Bedrooms>3,2,1)
+table(Housing4$Bedrooms)
+
+#For Bathroom we only inclde the 4 and 5 number's of batroom into 3 because the frequency of other two is ok.
+Housing4$Bathrooms[which(Housing4$Bathrooms == 4)] <- 3
+Housing4$Bathrooms[which(Housing4$Bathrooms == 5)] <- 3
+
+#Now we do same type of grouping for garage too
+Housing4$Garage[which(Housing4$Garage == 3)] <- 2
+Housing4$Garage[which(Housing4$Garage == 4)] <- 2
+
+#In case of the age of the house we can see that there are very less frequency for particular number of values to omit this we will categorize it into 3 factors one is New where we kept those houses which are less than or equal to 15 years old , on 2nd group we kept mild house which are less than 26 years old but greater than 15 years and on old group we kept house older than 25 years and mark it as 1, 2 and 3 respectively.
+
+Housing4$Age[which(Housing4$Age <=15)] <- 1
+Housing4$Age[which(Housing4$Age>15 & Housing4$Age<=25)] <- 2
+Housing4$Age[which(Housing4$Age>25)] <- 3
+View(Housing4)
+
+#Now we will drop the exposure column as we already discussed it that it doesn't affect house price much
+Housing5 <- Housing4[,-12]
+View(Housing5)
+
+```
+```{r}
+
+model2 <- lm(Price~Rooms+Bedrooms+Bathrooms+Age+Area+Garage+Attached+Basement+Total_Area+
+             Fireplace2+Garage2,data = Housing5)
+
+summary(model2)
+
+AIC(model2) # Akaike's information criterion
+BIC(model2)
+
+```
+
+There is a slight change in R-Squared and AIC but this is not significant but the p value is decrease for most of the variable which means the model is now able to detect most of the attributes but in case of room and bedroom still the p value is not significant, we already see that these two are correlated to each other so we and also with the total area so now we will try to remove room first and see if there is any changes 
+
+```{r}
+model3 <- lm(Price~Bedrooms+Bathrooms+Age+Style+Area+Garage2+Attached+Basement+Total_Area+
+             Fireplace2,data = Housing5)
+
+summary(model3)
+
+AIC(model3) # Akaike's information criterion
+BIC(model3)
+```
+The value changed but still not significant now we will see the influence plot and chech is there any particular observation which influencing our model 
+
+```{r}
+library(car) #TO plot influence index
+influenceIndexPlot(model3)
+```
+here the 165th observation has cook's value greater than 0.2 we need to remove it.
+
+```{r}
+Housing6 <- Housing5[-165,]
+model4 <- lm(Price~Bedrooms+Bathrooms+Age+Style+Area+Garage2+Attached+Basement+Total_Area+
+             Fireplace2,data = Housing6)
+
+summary(model4)
+
+AIC(model4) # Akaike's information criterion
+BIC(model4)
+
+
+```
+There is a significant change in the parameters  but still the p value for bedroom bathroom and room is not significant, also the p value for total area now increased,now we will try to build our model without omiting
+any observation and remove the bedroom and bathroom variable.
+```{r}
+model5 <- lm(Price~Age+Area+Garage2+Attached+Basement+Total_Area+
+             Fireplace2,data = Housing5)
+
+summary(model5)
+
+AIC(model5) # Akaike's information criterion
+BIC(model5)
+
+```
+
+Now all the p values are in the significance range,next we will build a aic table to check the best model.
+we try one more model by omiting the room and bedroom
+
+```{r}
+model6 <- lm(Price~Age+Area+Garage2+Attached+Total_Area+
+             Fireplace2,data = Housing6)
+
+summary(model6)
+
+AIC(model6) # Akaike's information criterion
+BIC(model6)
+
+influenceIndexPlot(model6)
+```
+```{r}
+library(AICcmodavg)
+models <- list(model1,model2,model3,model4,model5,model6)
+models_names <- c("model1","model2","model3","model4","model5","model6")
+aictab(cand.set = models,modnames = models_names)
+
+```
+
+based on aic table the first model is the significant one so model 6 is our final model
+#To see how our attributes are contributing on the final model and is our points fitted the regression line or not we see some plot to analyze it 
+
+```{r}
+library(MASS) #Aic and Av plots
+avPlots(model6, id.n=5, id.cex=100, col="red")#Added Variable plots
+stepAIC(model6)
+plot(model6) # Plot the model
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
